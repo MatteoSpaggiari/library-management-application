@@ -1,0 +1,511 @@
+<?php
+    class HTTPSession
+    {
+        private $php_session_id;
+        private $native_session_id;
+        private $created;
+        private $dbhandle;
+        private $logged_in;
+        private $user_id;
+        private $session_timeout = 3600;      # 10 minute inactivity timeout
+        private $session_lifespan = 3600;    # 1 hour session duration
+        private $objPDO;
+
+        public function __construct(PDO $objPDO, $lifesession = null) 
+        {
+            if(isset($_COOKIE['remember']) && $_COOKIE['remember'] == 1)
+            {
+                $this->session_lifespan = 31536000;
+                $this->session_timeout = 31536000;
+            }
+            #Connessione Database
+            $this->objPDO = $objPDO;
+            #Set up the handler
+            session_set_save_handler(
+                array(&$this, '_session_open_method'),
+                array(&$this, '_session_close_method'),
+                array(&$this, '_session_read_method'),
+                array(&$this, '_session_write_method'),
+                array(&$this, '_session_destroy_method'),
+                array(&$this, '_session_gc_method')
+            );
+            # Check the cookie passed - if one is - if it looks wrong we'll 
+            # scrub it right away
+            $strUserAgent = $_SERVER["HTTP_USER_AGENT"];
+            if (isset($_COOKIE["PHPSESSID"]))
+            {
+                # Security and age check
+                $this->php_session_id = $_COOKIE["PHPSESSID"];
+                $strQuery = "SELECT http_session_id, nuser_id FROM http_session WHERE sascii_session_id = :ascii_session_id AND ((UNIX_TIMESTAMP(now()) - UNIX_TIMESTAMP(dcreated)) < :session_lifespan ) AND suser_agent = :user_agent AND ((UNIX_TIMESTAMP(now()) - UNIX_TIMESTAMP(dlast_impression)) <= :session_timeout OR dlast_impression IS NULL)";
+                $objStatement = $this->objPDO->prepare($strQuery);
+                $objStatement->bindParam(':ascii_session_id',$this->php_session_id,PDO::PARAM_STR);
+                $objStatement->bindParam(':session_lifespan',$this->session_lifespan,PDO::PARAM_INT);
+                $objStatement->bindParam(':user_agent',$strUserAgent,PDO::PARAM_STR);
+                $objStatement->bindParam(':session_timeout',$this->session_timeout,PDO::PARAM_INT);
+                $objStatement->execute();
+                while($arRow = $objStatement->fetch(PDO::FETCH_ASSOC))
+                {
+                    foreach($arRow as $key => $value)
+                    {
+                        $this->user_id = $arRow['nuser_id'];
+                    }
+                }
+                if ($objStatement->rowCount() == 0)
+                {
+                    # Set failed flag
+                    $failed = 1;
+                    # Delete from database - we do garbage cleanup at the same time
+                    $maxlifetime = $this->session_lifespan;
+                    $strQuery = "DELETE FROM http_session WHERE (sascii_session_id = :ascii_session_id) OR (UNIX_TIMESTAMP(now()) - UNIX_TIMESTAMP(dcreated) > :session_lifespan)";
+                    $objStatement = $this->objPDO->prepare($strQuery);
+                    $objStatement->bindParam(':ascii_session_id',$this->php_session_id,PDO::PARAM_STR);
+                    $objStatement->bindParam(':session_lifespan',$this->session_lifespan,PDO::PARAM_INT);
+                    $objStatement->execute();
+                    # Clean up stray session variables
+                    $strQuery = "DELETE FROM session_variable WHERE :session_id NOT IN (SELECT http_session_id FROM http_session)";
+                    $objStatement = $this->objPDO->prepare($strQuery);
+                    $objStatement->bindParam(':session_id',$this->php_session_id,PDO::PARAM_INT);
+                    $objStatement->execute();
+                    # Get rid of this one... this will force PHP to give us another
+                    unset($_COOKIE["PHPSESSID"]);
+                }
+                else
+                {
+                   /* $strQuery = "DELETE FROM http_session WHERE sascii_session_id != :ascii_session_id AND suser_agent = :user_agent AND nuser_id = :user_id";
+                    $objStatement = $this->objPDO->prepare($strQuery);
+                    $objStatement->bindParam(':ascii_session_id',$this->php_session_id,PDO::PARAM_STR);
+                    $objStatement->bindParam(':user_id',$this->user_id,PDO::PARAM_INT);
+                    $objStatement->bindParam(':user_agent',$strUserAgent,PDO::PARAM_STR);
+                    $objStatement->execute(); */
+                }
+            };
+            # Set the life time for the cookie
+            session_set_cookie_params($this->session_lifespan);
+            # Call the session_start method to get things started
+            session_start();
+        }
+
+        public function Impress()
+        {
+            if ($this->native_session_id)
+            {
+                $strQuery =  "UPDATE http_session SET dlast_impression = now() WHERE http_session_id = :native_session_id";
+                $objStatement = $this->objPDO->prepare($strQuery);
+                $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+                $objStatement->execute();
+            };
+        }
+
+        public function IsLoggedIn()
+        {
+            return($this->logged_in);
+        }
+
+        public function GetUserID()
+        {
+            if ($this->logged_in)
+            {
+                return($this->user_id);
+            }
+            else
+            {
+                return(false);
+            };
+        }
+
+        public function GetUserObject()
+        {
+            if ($this->logged_in)
+            {
+                if (class_exists("User"))
+                {
+                    $objUser = new User($this->objPDO,$this->user_id);
+                    return($objUser);
+                }
+                else
+                {
+                    return(false);
+                };
+            };
+        }
+
+        public function GetSessionIdentifier()
+        {
+            return($this->php_session_id);
+        }
+
+        public function validateLogin($strUsername, $strPassword)
+        {
+            $Errors = array();
+            //Username
+            if(empty($strUsername))
+            {
+                $Errors['Username'] = '&Egrave; obbligatorio inserire la Email.';
+            }
+            else
+            {
+                if(strlen($strUsername) > 150)
+                {
+                    $Errors['Username'] = 'Hai inserito una E&minus;MAIL troppo lunga (max 150 caratteri).';
+                }
+                else if(!preg_match('|^[a-z0-9\._%-]+@{1,1}[a-z0-9\._%-]+[\.]{1,1}[a-z]{2,6}$|', $strUsername))
+                {
+                    $Errors['Username'] = 'Hai inserito una E&minus;MAIL non corretta.';
+                }
+            }
+            //Password
+            if(empty($strPassword))
+            {
+                $Errors['Password'] = '&Egrave; obbligatorio inserire la Password.';
+            }
+            return $Errors;
+        }
+
+        public function Login($strUsername, $strPlainPassword)
+        {
+            $strMD5Password = md5($strPlainPassword,FALSE);
+            $strQuery = "SELECT user_id FROM users WHERE susername = :username AND cpassword = :password";
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':username',$strUsername,PDO::PARAM_STR);
+            $objStatement->bindParam(':password',$strMD5Password,PDO::PARAM_STR);
+            $objStatement->execute();
+            if ($objStatement->rowCount() == 1)
+            {
+                $arRow = $objStatement->fetch(PDO::FETCH_ASSOC);
+                foreach($arRow as $key => $value)
+                {
+                    $this->user_id = $value;
+                    $this->logged_in = true;
+                }
+                $strQuery = "UPDATE http_session SET blogged_in = true, nuser_id = :user_id WHERE http_session_id = :native_session_id";
+                $objStatement = $this->objPDO->prepare($strQuery);
+                $objStatement->bindParam(':user_id',$this->user_id,PDO::PARAM_INT);
+                $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+                $objStatement->execute();
+                return(true);
+            }
+            else
+            {
+                return(false);
+            };
+        }
+
+        public function LogOut()
+        {
+            if ($this->logged_in == true)
+            {
+                $strQuery = "DELETE FROM http_session WHERE http_session_id = :native_session_id";
+                $objStatement = $this->objPDO->prepare($strQuery);
+                $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+                $objStatement->execute();
+                $this->logged_in = false;
+                $this->user_id = 0;
+                $expire = time() - (60*60*24*365);
+                setcookie("remember","1",$expire);
+                setcookie("PHPSESSID",$SessionIdentifier,$expire);
+                return(true);
+            }
+            else
+            {
+                return(false);
+            };
+        }
+
+        public function getFieldsValue()
+        {
+            $FieldsValue = array();
+            $strQuery = 'SELECT svariable_name, tvariable_value FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "f_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+            if ($objStatement->rowCount() > 0)
+            {
+                while($arRow = $objStatement->fetch(PDO::FETCH_ASSOC))
+                {
+                    $FieldsValue[$arRow['svariable_name']] = unserialize($arRow['tvariable_value']);
+                }
+                return $FieldsValue;
+            }
+        }
+        
+        public function getFieldsValueEditProfile()
+        {
+            $FieldsValue = array();
+            $strQuery = 'SELECT svariable_name, tvariable_value FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "fp_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+            if ($objStatement->rowCount() > 0)
+            {
+                while($arRow = $objStatement->fetch(PDO::FETCH_ASSOC))
+                {
+                    $FieldsValue[$arRow['svariable_name']] = unserialize($arRow['tvariable_value']);
+                }
+                return $FieldsValue;
+            }
+        }
+
+        public function getFieldsValueLoan()
+        {
+            $FieldsValue = array();
+            $strQuery = 'SELECT svariable_name, tvariable_value FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "sl_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+            if ($objStatement->rowCount() > 0)
+            {
+                while($arRow = $objStatement->fetch(PDO::FETCH_ASSOC))
+                {
+                    $FieldsValue[$arRow['svariable_name']] = unserialize($arRow['tvariable_value']);
+                }
+                return $FieldsValue;
+            }
+        }
+
+        public function getErrorLoan()
+        {
+            $Errors = array();
+            $strQuery = 'SELECT svariable_name, tvariable_value FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "el_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+            if ($objStatement->rowCount() > 0)
+            {
+                while($arRow = $objStatement->fetch(PDO::FETCH_ASSOC))
+                {
+                    $Errors[$arRow['svariable_name']] = unserialize($arRow['tvariable_value']);
+                }
+                return $Errors;
+            }
+        }
+        
+        public function getErrorEditProfile()
+        {
+            $Errors = array();
+            $strQuery = 'SELECT svariable_name, tvariable_value FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "ep_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+            if ($objStatement->rowCount() > 0)
+            {
+                while($arRow = $objStatement->fetch(PDO::FETCH_ASSOC))
+                {
+                    $Errors[$arRow['svariable_name']] = unserialize($arRow['tvariable_value']);
+                }
+                return $Errors;
+            }
+        }
+
+        public function getErrorEntryLogin()
+        {
+            $Errors = array();
+            $strQuery = 'SELECT svariable_name, tvariable_value FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "el_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+            if ($objStatement->rowCount() > 0)
+            {
+                while($arRow = $objStatement->fetch(PDO::FETCH_ASSOC))
+                {
+                    $Errors[$arRow['svariable_name']] = unserialize($arRow['tvariable_value']);
+                }
+                return $Errors;
+            }
+        }
+
+        public function deleteErrors()
+        {
+            $Errors = array();
+            $strQuery = 'DELETE FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "ee_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+        }
+        
+        public function deleteErrorsCatalog()
+        {
+            $Errors = array();
+            $strQuery = 'DELETE FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "erc_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+        }
+
+        public function deleteErrorsLogin()
+        {
+            $Errors = array();
+            $strQuery = 'DELETE FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "el_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+        }
+
+        public function deleteFieldsValue()
+        {
+            $Errors = array();
+            $strQuery = 'DELETE FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "fe_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+        }
+        
+        public function deleteFieldsValueAddCatalog()
+        {
+            $Errors = array();
+            $strQuery = 'DELETE FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "ac_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+        }
+        
+        public function deleteFieldsValueEditCatalog()
+        {
+            $Errors = array();
+            $strQuery = 'DELETE FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "ec_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+        }
+
+        public function deleteFieldsValueAddLoan()
+        {
+            $Errors = array();
+            $strQuery = 'DELETE FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "al_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+        }
+        
+        public function deleteFieldsValueLogin()
+        {
+            $Errors = array();
+            $strQuery = 'DELETE FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name LIKE "fl_%"';
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->execute();
+        }
+
+        public function __get($nm)
+        {
+            $strQuery = "SELECT tvariable_value FROM session_variable WHERE nsession_id = :native_session_id AND svariable_name = :variable_name";
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->bindParam(':variable_name',$nm,PDO::PARAM_STR);
+            $objStatement->execute();
+            if ($objStatement->rowCount() == 1)
+            {
+                $arRow = $objStatement->fetch(PDO::FETCH_ASSOC);
+                foreach($arRow as $key => $value)
+                {
+                    return(unserialize($value));
+                }
+            }
+            else
+            {
+                return(false);
+            };
+        }
+
+        public function __set($nm, $val)
+        {
+            $strSer = serialize($val);
+            $strQuery = "INSERT INTO session_variable(nsession_id, svariable_name, tvariable_value) VALUES(:native_session_id,:variable_name,:variable_value)";
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':native_session_id',$this->native_session_id,PDO::PARAM_INT);
+            $objStatement->bindParam(':variable_name',$nm,PDO::PARAM_STR);
+            $objStatement->bindParam(':variable_value',$strSer,PDO::PARAM_STR);
+            $objStatement->execute();
+        }
+
+        public function _session_open_method($save_path, $session_name)
+        {
+            # Do nothing
+            return(true);
+        }
+
+        public function _session_close_method()
+        {
+            $this->objPDO = NULL;
+            return(true);
+        }
+
+        public function _session_read_method($id)
+        {
+            # We use this to determine whether or not our session actually exists.
+            $strUserAgent = $_SERVER["HTTP_USER_AGENT"];
+            $this->php_session_id = $id;
+            # Set failed flag to 1 for now
+            $failed = 1;
+            # See if this exists in the database or not.
+            $strQuery = "SELECT http_session_id, blogged_in, nuser_id FROM http_session WHERE sascii_session_id = :ascii_session_id";
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':ascii_session_id',$id,PDO::PARAM_STR);
+            $objStatement->execute();
+            if ($objStatement->rowCount() == 1)
+            {
+                $arRow = $objStatement->fetch(PDO::FETCH_ASSOC);
+                foreach($arRow as $key => $value)
+                {
+                    $this->native_session_id = $arRow['http_session_id'];
+                    if ($arRow["blogged_in"] == 1)
+                    {
+                        $this->logged_in = true;
+                        $this->user_id = $arRow["nuser_id"];
+                    }
+                    else 
+                    {
+                        $this->logged_in = false;
+                    };
+                }
+            }
+            else
+            {
+                $this->logged_in = false;
+                # We need to create an entry in the database
+                $strQuery = "INSERT INTO http_session(sascii_session_id, blogged_in,nuser_id, dlast_impression, dcreated, suser_agent) VALUES (:ascii_session_id,0,0,now(),now(),:user_agent)";
+                $objStatement = $this->objPDO->prepare($strQuery);
+                $objStatement->bindParam(':ascii_session_id',$id,PDO::PARAM_STR);
+                $objStatement->bindParam(':user_agent',$strUserAgent,PDO::PARAM_STR);
+                $objStatement->execute();
+                # Now get the true ID
+                $strQuery = "SELECT http_session_id FROM http_session WHERE sascii_session_id = :ascii_session_id";
+                $objStatement = $this->objPDO->prepare($strQuery);
+                $objStatement->bindParam(':ascii_session_id',$id,PDO::PARAM_STR);
+                $objStatement->execute();
+                if ($objStatement->rowCount() == 1)
+                {
+                    $arRow = $objStatement->fetch(PDO::FETCH_ASSOC);
+                    foreach($arRow as $key => $value)
+                    {
+                        $this->native_session_id = $value;
+                    }
+                }
+            };
+            # Just return empty string
+            return("");
+        }
+
+        public function _session_write_method($id, $sess_data)
+        {
+            return(true);
+        }
+
+        public function _session_destroy_method($id) 
+        {
+            $strQuery = "DELETE FROM http_session WHERE sascii_session_id = :ascii_session_id";
+            $objStatement = $this->objPDO->prepare($strQuery);
+            $objStatement->bindParam(':ascii_session_id',$id,PDO::PARAM_STR);
+            $result = $objStatement->execute();
+            return($result);
+        }
+
+        public function _session_gc_method($maxlifetime) 
+        {
+            return(true);
+        }
+        
+        public function setLoggedIn($param) {
+            $this->logged_in = $param;
+        }
+    }
+?>

@@ -1,0 +1,52 @@
+/* Css per pagine di Informazione (Registrazione, UpLoad ecc.) */
+* {
+    margin: 0;
+    padding: 0;
+    position: static;
+}
+
+body {
+    background-color : #000000;
+    font-family : Arial, Geneva, Verdana, Helvetica, sans-serif;
+    font-weight : bold;
+    color : #ffffff;
+}
+
+div {
+    margin: 0 auto;
+    width: 800px;
+}
+
+h1 {
+    margin: 4em auto 1em;
+    text-align: center;
+}
+
+h1#rosso {
+    margin: 4em auto 1em;
+    text-align: center;
+    color: #ea0000;
+}
+
+p {
+    margin: 0.5em auto 0.5em;
+    width: auto;  
+    text-align: left;
+    color: #ffff24;
+}
+
+a {
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+a:link {
+    color: #4276ff;
+}
+
+a:visited {
+    color: #9c2fff;
+}
+.advise {
+    display: none;
+}

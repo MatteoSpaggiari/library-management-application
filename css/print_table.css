@@ -1,0 +1,165 @@
+html body nav, html body header {
+    display: none;
+}
+
+html body .query header {
+    display: none;
+}
+
+html body .query div.corpo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin-left: 0.2cm;
+    margin-right: 0.2cm; 
+    width: auto;
+    text-align: left;
+    background: #fff;
+}
+
+html body .query table {
+    margin: 0 auto;
+    padding: 1em 0 0;
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    background-color: #fff;
+    border: 1px solid #000;
+    font-size : 0.75em;
+    box-shadow: none;
+}
+
+html body .query table caption {
+    color: #000;
+    text-shadow: none;
+}
+
+html body .query table.restituzioni {
+    position: relative;
+    top: 2px;
+    width: 100%;
+}
+
+html body .query table th {
+    padding: 0.1em;
+    font-weight: bold;
+    color: #000;
+    background-color: #fffbd2;
+    text-align: center;
+    border: 1px solid #000;
+    font-size: 12px;
+}
+
+html body .query table td {
+    padding: 0.1em;
+    font-weight: normal;
+    font-size: 12px;
+    border: 1px solid #000;
+}
+
+html body .query table th, html body .query table td {
+    display: table-cell !important;
+    text-shadow: none;
+    text-align: center;
+    color: #000 !important;
+}
+
+html body .query table th a, html body .query table td a {
+    color: #000 !important;
+    text-shadow: none !important;
+}
+
+html body .query table th strong, html body .query table td strong {
+    color: #000 !important;
+    text-shadow: none !important;
+}
+
+html body .query table caption {
+    color: #000;
+    text-shadow: none;
+}
+
+html body .query h2, html body .query h3, html body .query h4 {
+    margin: 0 auto;
+    font-size: 18px;
+    text-align: center;
+    color: #000;
+}
+
+html body div.box_sinistra ul li, html body div.box_destra ul li {
+    padding: 0.1cm 0 !important;
+    font-size: 0.3cm !important;
+}
+
+html body div.box_sinistra {
+    top: 0;
+    width: 14.5cm;
+}
+
+html body div.box_sinistra p {
+    font-size: 0.3cm !important;
+}
+
+html body div.box_destra {
+    top: 0;
+    left: 16.5cm;
+    width: 14cm;
+}
+
+html body div.box_destra img {
+    float: left;
+    text-align: left;
+    height: 2.6cm;
+}
+
+html body div.box_destra div p {
+    text-align: center;
+    font-size: 0.3cm;
+    font-weight: normal;
+}
+
+html body div.box_destra h3 {
+    clear: both;
+}
+
+html body div.scheda_ute ul li {
+    padding: 0.14em 0;
+    font-size: 0.5cm;
+}
+
+html body div.isc_int ul li {
+    font-size: 0.43cm;
+}
+
+html body div.box_destra p span {
+    margin: 0;
+    padding: 0;
+    border: 1px solid #000;
+    font-size: 10px;
+    vertical-align: 3px;
+}
+
+html body div.box_destra div#scheda_ute ul {
+    margin-bottom: 0.5cm;
+}
+
+html body div.box_destra div#scheda_ute ul li{
+    padding: 0.1cm 0;
+}
+
+html body div.box_destra div.scheda_ute p {
+    margin-bottom: 0.3cm;
+    font-size: 0.3cm !important;
+    text-align: left !important;
+}
+
+div.errori {
+    display: none;
+}
+
+.container-button {
+    display: none;
+}
+.advise {
+    display: none;
+}

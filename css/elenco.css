@@ -1,0 +1,350 @@
+body {
+    margin: 0;
+    padding: 0;
+    background: #fff url('../images/sfondo.gif');
+}
+
+img {
+    border: none;
+}
+
+div#errori {
+    position: relative;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.3em;
+    background-color: #c00;
+    border: 2px solid #22c;
+    color: #fff;
+    font-weight: bold;
+    text-align: center;
+    font-size: 1em;
+    z-index: 100;
+}
+
+div#box_sx {
+    position: absolute;
+    margin: 0;
+    padding: 0 20px 0 10px;
+    width: 380px;
+    height: 100%;
+    background: transparent;
+    border-right: 4px double #000;
+}
+
+div#contenuto {
+    position: absolute;
+    padding-left: 10px;
+    top: 10px;
+    left: 440px;
+}
+
+img#logo {
+    margin: 14px 0 2px;
+    padding: 0;
+}
+
+form#ricerca_libro {
+    position: static;
+    width: 570px;
+    height: auto;
+    margin: 10px 0;
+    padding: 0 0.2em;
+    background: #e7e7e7 url("../images/sfondo_form_c.png");
+    font-weight: normal;
+    font-size: 0.85em;
+    border: 1px solid #000;
+    border-radius: 10px 10px 10px 10px / 10px 10px 10px 10px;
+    -webkit-border-radius: 10px 10px 10px 10px / 10px 10px 10px 10px;
+    -moz-border-radius: 10px 10px 10px 10px / 10px 10px 10px 10px;
+}
+
+form#ricerca_libro fieldset {
+    width: auto;
+    background: transparent;
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+form#ricerca_libro fieldset p {
+    position: relative;
+    margin: 3px auto;
+    padding: 0;
+    height: 28px;
+    font-size: 14px;
+}
+
+form#ricerca_libro fieldset p input {
+    height: 18px;
+    line-height: 18px;
+    border: 1px solid #000;
+}
+
+form#ricerca_libro fieldset p input.text {
+    height: 18px;
+}
+
+form#ricerca_libro fieldset legend {
+    margin: 0;
+    margin-bottom: 0.8em;
+    padding: 0.4em;
+    font-weight: bold; 
+    color: #000;
+    font-size: 1em;
+    text-decoration: underline;
+    text-transform: uppercase;
+}
+
+form#ricerca_libro fieldset label {
+    clear: both;
+    display: block;
+    float: left;
+    margin: 0;
+    margin-left: 44px;
+    text-align: left;
+    width: 70px;
+    height: 20px;
+    line-height: 20px;
+    color: #d50a0a;
+    font-weight: bold;
+    font-variant: small-caps;
+    font-size: 1em;
+}
+
+form#ricerca_libro fieldset div.pos_but {
+    position: relative;
+    margin: 8px auto;
+    width: auto;
+    padding: 0;
+    text-align: center;
+    font-size: 0.9em;
+}
+
+p.info {
+    margin: 0 auto;
+    padding: 0 10px;
+    font-size: 18px;
+    width: 380px;
+}
+
+p.ricerca {
+    margin: 0;
+    margin-top: 5px;
+    padding: 0;
+    font-size: 16px;
+    width: auto;
+}
+
+ul {
+    margin: 4px 0 0 30px;	
+    padding: 0;
+}
+
+input.reset {
+    padding: 2px;
+    display: block;
+    background: transparent url('../images/reset_i.png') center top no-repeat;
+    width: 65px;
+    height: 40px;
+    float: left;
+    border: none;
+    cursor: pointer;
+}
+
+strong {
+    font-weight: bold;
+    color: #aa2a2a;
+}
+
+em {
+    font-style: normal;
+    font-weight: bold;
+    color: #000;
+}
+
+mark {
+    background-color: #ffff93;
+}
+
+sub	{
+    font-size: 0.65em;
+}
+
+sup	{
+    font-size: 0.6em;
+}
+
+.center	{
+    text-align: center;
+}
+
+.smallclaps	{
+    font-weight: bold;
+    font-variant: small-caps;
+}
+
+.sbarra {
+    text-decoration: line-through;
+}
+
+.slinea {
+    text-decoration: underline;
+}
+
+.odd_row {
+    background-color: #e5e5e5;
+}
+
+.even_row {
+    background-color: #fff;
+}
+
+.focus:focus {
+    background-color : #ffffb0;
+}
+
+.piccolo {
+    font-size: 0.8em;
+}
+
+.italic {
+    font-style: italic;
+}
+
+.right {
+    text-align: right;	
+}
+
+h3 {
+    position: relative;
+    top: 0;
+    left: 0;
+    margin: 0;
+    padding: 0;
+    color: #aa2a2a;
+    font-size: 15px;
+}
+
+h3.ris	{
+    position: relative;
+    top: 10px;
+    left: 0;
+    margin: 0 auto;
+    padding: 0;
+    width: 100%;
+    text-align: center;
+    color: #000;
+    font-size: 1em;
+}
+
+h3.no_ris	{
+    position: relative;
+    top: 0;
+    left: 0;
+    margin: 2em auto;
+    padding: 0;
+    width: 100%;
+    text-align: center;
+    color: #aa2a2a;
+}
+
+table#ris {
+    margin: 0;
+    margin-top: 12px;
+    padding: 0;
+    width: 95%;
+    table-layout: fixed;
+    border-collapse: collapse;
+    background-color: #fff;
+    border: 2px groove #000;
+    font-size : 1em;
+    text-align: left;
+    overflow: hidden;
+}
+
+table#ris th {
+    padding: 0.4em;
+    font-weight: bold;
+    color: #0f09fe;
+    background-color: #e9f9ff;
+    text-align: center;
+    border: 2px groove #000;
+    overflow: hidden;
+    font-size: 0.9em;
+}
+
+table#ris td {
+    padding: 0.4em;
+    font-weight: normal;
+    font-size: 1em;
+    border: 1px groove #000;
+    overflow: hidden;
+}
+
+a#numpag {
+    margin: 0;
+    padding: 0 0.2em 0;
+    color: #aa2a2a;
+    z-index: 100;
+}
+
+p#pagine {
+    margin: 3px auto;
+    text-align: center;
+    z-index: 100;
+}
+
+footer {
+    position: absolute;
+    bottom: 0;
+    margin: 0 auto;
+    padding: 0;
+    background: transparent;
+    width: 100%;
+    text-align: center;
+    z-index: 1;
+}
+
+table#partner {
+    width: 80%;
+    margin: 0 auto;
+    padding: 0;
+    padding-right: 10px;
+    border: none;
+    z-index: 1;
+}
+
+table#partner td {
+    text-align: center;
+    vertical-align: bottom;
+    color: blue;
+}
+
+table#partner a {
+    margin: 0 auto;
+    border: none;
+    text-decoration: none;
+    text-align: center;
+}
+
+table#partner a img {
+    display: block;
+    margin: 0 auto;
+    text-align: center;
+}
+
+div#info_ass {
+    width: auto;
+    margin: 5px auto 10px;
+    padding: 0;
+    padding-right: 20px;
+    text-align: center;
+    font-size: 11px;
+}
+
+div#info_ass p {
+    margin: 0 auto;
+    text-align: center;
+}
